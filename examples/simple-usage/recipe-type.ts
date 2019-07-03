@@ -1,6 +1,8 @@
-import { Field, ObjectType, Int, Float } from "../../src";
+import { Field, ObjectType, Int, Float, Federation } from "../../src";
+const { Extends, Key, External, Provides } = Federation;
 
 @ObjectType({ description: "Object representing cooking recipe" })
+@Key({ fields: "title" })
 export class Recipe {
   @Field()
   title: string;

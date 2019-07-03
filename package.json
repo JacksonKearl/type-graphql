@@ -18,8 +18,8 @@
     "postinstall": "node ./dist/postinstall || exit 0"
   },
   "peerDependencies": {
-    "@types/graphql": "^14.1.1",
-    "graphql": "^14.1.1"
+    "@types/graphql": "^14.4.1",
+    "graphql": "^14.4.1"
   },
   "dependencies": {
     "@types/glob": "^7.1.1",
@@ -58,7 +58,7 @@
     "del": "^4.1.0",
     "express": "^4.16.4",
     "express-graphql": "^0.8.0",
-    "graphql": "^14.1.1",
+    "graphql": "^14.4.1",
     "graphql-playground-middleware-express": "^1.7.12",
     "graphql-redis-subscriptions": "^2.1.0",
     "graphql-tag": "^2.10.1",

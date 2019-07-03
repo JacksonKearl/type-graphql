@@ -1,21 +1,21 @@
 import "reflect-metadata";
-import { ApolloServer } from "apollo-server";
+import { ApolloServer, gql } from "apollo-server";
 import * as path from "path";
-import { buildSchema } from "../../src";
-
+import { buildSchema, buildTypeDefsAndResolvers } from "../../src";
+import { buildFederatedSchema } from "@apollo/federation";
 import { RecipeResolver } from "./recipe-resolver";
 
 async function bootstrap() {
-  // build TypeGraphQL executable schema
-  const schema = await buildSchema({
+  const { typeDefs, resolvers } = await buildTypeDefsAndResolvers({
     resolvers: [RecipeResolver],
-    // automatically create `schema.gql` file with schema definition in current folder
-    emitSchemaFile: path.resolve(__dirname, "schema.gql"),
-  });
+  }).then(({ typeDefs, resolvers }) => ({
+    typeDefs: gql(typeDefs),
+    resolvers: resolvers as any,
+  }));
 
   // Create GraphQL server
   const server = new ApolloServer({
-    schema,
+    schema: buildFederatedSchema([{ typeDefs, resolvers }]),
     // enable GraphQL Playground
     playground: true,
   });

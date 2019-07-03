@@ -10,7 +10,7 @@ require("ts-node/register/transpile-only");
 // require("./examples/redis-subscriptions/index.ts");
 // require("./examples/resolvers-inheritance/index.ts");
 // require("./examples/simple-subscriptions/index.ts");
-// require("./examples/simple-usage/index.ts");
+require("./examples/simple-usage/index");
 // require("./examples/typegoose/index.ts");
 // require("./examples/typeorm-basic-usage/index.ts");
 // require("./examples/typeorm-lazy-relations/index.ts");
