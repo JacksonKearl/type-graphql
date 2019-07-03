@@ -1,4 +1,5 @@
 import { FieldMetadata } from "./field-metadata";
+import { FederationObjectTypeMetadata } from "./federation-metadata";
 
 export interface ClassMetadata {
   name: string;
@@ -6,4 +7,5 @@ export interface ClassMetadata {
   fields?: FieldMetadata[];
   description?: string;
   isAbstract?: boolean;
+  federation?: Partial<FederationObjectTypeMetadata>;
 }

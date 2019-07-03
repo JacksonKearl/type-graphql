@@ -20,3 +20,6 @@ export { Root } from "./Root";
 export { Subscription } from "./Subscription";
 export { createUnionType } from "./unions";
 export { UseMiddleware } from "./UseMiddleware";
+
+import * as Federation from "./federation";
+export { Federation };

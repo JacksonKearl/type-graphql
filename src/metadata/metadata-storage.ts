@@ -23,6 +23,15 @@ import {
 } from "./utils";
 import { ObjectClassMetadata } from "./definitions/object-class-metdata";
 import { InterfaceClassMetadata } from "./definitions/interface-class-metadata";
+import {
+  FederationMetadata,
+  FederationExtendsMetadata,
+  FederationKeyMetadata,
+  FederationExternalMetadata,
+  FederationRequiresMetadata,
+  FederationProvidesMetadata,
+  FederationFieldTypeMetadata,
+} from "./definitions/federation-metadata";
 
 export class MetadataStorage {
   queries: ResolverMetadata[] = [];
@@ -37,6 +46,14 @@ export class MetadataStorage {
   enums: EnumMetadata[] = [];
   unions: UnionMetadataWithSymbol[] = [];
   middlewares: MiddlewareMetadata[] = [];
+  federation: FederationMetadata = {
+    useApolloFederation: false,
+    extends: [],
+    key: [],
+    external: [],
+    requires: [],
+    provides: [],
+  };
 
   private resolverClasses: ResolverClassMetadata[] = [];
   private fields: FieldMetadata[] = [];
@@ -98,6 +115,28 @@ export class MetadataStorage {
     this.params.push(definition);
   }
 
+  // apollo federation
+  collectFederationExtendsMetadata(definition: FederationExtendsMetadata) {
+    this.federation.useApolloFederation = true;
+    this.federation.extends.push(definition);
+  }
+  collectFederationKeyMetadata(definition: FederationKeyMetadata) {
+    this.federation.useApolloFederation = true;
+    this.federation.key.push(definition);
+  }
+  collectFederationExternalMetadata(definition: FederationExternalMetadata) {
+    this.federation.useApolloFederation = true;
+    this.federation.external.push(definition);
+  }
+  collectFederationRequiresMetadata(definition: FederationRequiresMetadata) {
+    this.federation.useApolloFederation = true;
+    this.federation.requires.push(definition);
+  }
+  collectFederationProvidesMetadata(definition: FederationProvidesMetadata) {
+    this.federation.useApolloFederation = true;
+    this.federation.provides.push(definition);
+  }
+
   build() {
     // TODO: disable next build attempts
 
@@ -134,7 +173,7 @@ export class MetadataStorage {
     this.params = [];
   }
 
-  private buildClassMetadata(definitions: ClassMetadata[]) {
+  private buildClassMetadata(definitions: ClassMetadata[], withFederation: boolean = false) {
     definitions.forEach(def => {
       const fields = this.fields.filter(field => field.target === def.target);
       fields.forEach(field => {
@@ -147,8 +186,14 @@ export class MetadataStorage {
             middleware => middleware.target === field.target && middleware.fieldName === field.name,
           ),
         );
+        field.federation = this.findFieldFederation(field.target, field.name);
       });
       def.fields = fields;
+
+      def.federation = {
+        extends: this.federation.extends.find(it => it.target === def.target),
+        key: this.federation.key.find(it => it.target === def.target),
+      };
     });
   }
 
@@ -252,5 +297,22 @@ export class MetadataStorage {
       return;
     }
     return authorizedField.roles;
+  }
+
+  private findFieldFederation(
+    target: FieldMetadata["target"],
+    name: FieldMetadata["name"],
+  ): Partial<FederationFieldTypeMetadata> {
+    return {
+      external: this.federation.external.find(
+        field => field.target === target && field.name === name,
+      ),
+      requires: this.federation.requires.find(
+        field => field.target === target && field.name === name,
+      ),
+      provides: this.federation.provides.find(
+        field => field.target === target && field.name === name,
+      ),
+    };
   }
 }

@@ -15,6 +15,13 @@ import {
   GraphQLEnumValueConfigMap,
   GraphQLUnionType,
   GraphQLTypeResolver,
+  GraphQLDirective,
+  GraphQLNonNull,
+  DirectiveNode,
+  ObjectTypeExtensionNode,
+  ObjectTypeDefinitionNode,
+  FieldDefinitionNode,
+  specifiedDirectives,
 } from "graphql";
 import { withFilter, ResolverFn } from "graphql-subscriptions";
 
@@ -40,9 +47,14 @@ import {
   ConflictingDefaultValuesError,
   InterfaceResolveTypeError,
 } from "../errors";
-import { ResolverFilterData, ResolverTopicData, TypeResolver } from "../interfaces";
+import { ResolverFilterData, ResolverTopicData, TypeResolver, Maybe } from "../interfaces";
 import { getFieldMetadataFromInputType, getFieldMetadataFromObjectType } from "./utils";
 import { ensureInstalledCorrectGraphQLPackage } from "../utils/graphql-version";
+import {
+  FederationObjectTypeMetadata,
+  FederationFieldTypeMetadata,
+} from "../metadata/definitions/federation-metadata";
+import federationDirectives from "@apollo/federation/dist/directives";
 
 interface AbstractInfo {
   isAbstract: boolean;
@@ -104,6 +116,7 @@ export abstract class SchemaGenerator {
       mutation: this.buildRootMutationType(),
       subscription: this.buildRootSubscriptionType(),
       types: this.buildOtherTypes(),
+      directives: this.buildDirectives(),
     });
 
     BuildContext.reset();
@@ -255,12 +268,82 @@ export abstract class SchemaGenerator {
         return superClassTypeInfo ? superClassTypeInfo.type : undefined;
       };
       const interfaceClasses = objectType.interfaceClasses || [];
+
+      const federationAstNodes = (
+        name: string,
+        federation?: Partial<FederationObjectTypeMetadata>,
+      ): ObjectTypeDefinitionNode | undefined => {
+        if (!federation) {
+          return;
+        }
+
+        const directives: DirectiveNode[] = [];
+
+        if (federation.key && federation.key.fields) {
+          directives.push(this.createDirective("key", federation.key.fields));
+        }
+
+        if (federation.extends) {
+          directives.push(this.createDirective("extends"));
+        }
+
+        return {
+          kind: "ObjectTypeDefinition",
+          name: {
+            kind: "Name",
+            value: name,
+          },
+          interfaces: [],
+          directives,
+        };
+      };
+
+      const federationFieldAstNodes = (
+        name: string,
+        federation?: Partial<FederationFieldTypeMetadata>,
+      ): FieldDefinitionNode | undefined => {
+        if (!federation) {
+          return;
+        }
+
+        const directives: DirectiveNode[] = [];
+
+        if (federation.external) {
+          directives.push(this.createDirective("external"));
+        }
+
+        if (federation.requires && federation.requires.fields) {
+          directives.push(this.createDirective("requires", federation.requires.fields));
+        }
+
+        if (federation.provides && federation.provides.fields) {
+          directives.push(this.createDirective("provides", federation.provides.fields));
+        }
+
+        return {
+          kind: "FieldDefinition",
+          type: {
+            kind: "NamedType",
+            name: {
+              kind: "Name",
+              value: name,
+            },
+          },
+          name: {
+            kind: "Name",
+            value: name,
+          },
+          directives,
+        };
+      };
+
       return {
         target: objectType.target,
         isAbstract: objectType.isAbstract || false,
         type: new GraphQLObjectType({
           name: objectType.name,
           description: objectType.description,
+          astNode: federationAstNodes(objectType.name, objectType.federation),
           interfaces: () => {
             let interfaces = interfaceClasses.map<GraphQLInterfaceType>(
               interfaceClass =>
@@ -295,6 +378,7 @@ export abstract class SchemaGenerator {
                     : createSimpleFieldResolver(field),
                   description: field.description,
                   deprecationReason: field.deprecationReason,
+                  astNode: federationFieldAstNodes(field.name, field.federation),
                 };
                 return fieldsMap;
               },
@@ -603,5 +687,39 @@ export abstract class SchemaGenerator {
       }
       return this.objectTypesInfo.find(objectType => objectType.target === resolvedType)!.type;
     };
+  }
+
+  private static createDirective(name: string, fields?: string): DirectiveNode {
+    return {
+      kind: "Directive",
+      name: {
+        kind: "Name",
+        value: name,
+      },
+      arguments: fields
+        ? [
+            {
+              kind: "Argument",
+              name: {
+                kind: "Name",
+                value: "fields",
+              },
+              value: {
+                kind: "StringValue",
+                value: fields,
+                block: false,
+              },
+            },
+          ]
+        : undefined,
+    };
+  }
+
+  private static buildDirectives() {
+    if (!getMetadataStorage().federation.useApolloFederation) {
+      return;
+    }
+
+    return [...specifiedDirectives, ...federationDirectives];
   }
 }

@@ -1,7 +1,9 @@
 import { GraphQLSchema, printSchema } from "graphql";
+import { printSchema as printFederatedSchema } from "@apollo/federation";
 import { Options as PrintSchemaOptions } from "graphql/utilities/schemaPrinter";
 
 import { outputFile, outputFileSync } from "../helpers/filesystem";
+import { getMetadataStorage } from "../metadata/getMetadataStorage";
 
 export const defaultPrintSchemaOptions: PrintSchemaOptions = { commentDescriptions: false };
 
@@ -13,12 +15,20 @@ const generatedSchemaWarning = /* graphql */ `\
 
 `;
 
+function isFederated(): boolean {
+  const metadata = getMetadataStorage();
+
+  return metadata.federation && metadata.federation.useApolloFederation === true;
+}
+
 export function emitSchemaDefinitionFileSync(
   schemaFilePath: string,
   schema: GraphQLSchema,
   options: PrintSchemaOptions = defaultPrintSchemaOptions,
 ) {
-  const schemaFileContent = generatedSchemaWarning + printSchema(schema, options);
+  const schemaFileContent =
+    generatedSchemaWarning +
+    (isFederated() ? printFederatedSchema(schema) : printSchema(schema, options));
   outputFileSync(schemaFilePath, schemaFileContent);
 }
 
@@ -27,6 +37,8 @@ export async function emitSchemaDefinitionFile(
   schema: GraphQLSchema,
   options: PrintSchemaOptions = defaultPrintSchemaOptions,
 ) {
-  const schemaFileContent = generatedSchemaWarning + printSchema(schema, options);
+  const schemaFileContent =
+    generatedSchemaWarning +
+    (isFederated() ? printFederatedSchema(schema) : printSchema(schema, options));
   await outputFile(schemaFilePath, schemaFileContent);
 }

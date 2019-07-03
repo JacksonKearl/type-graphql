@@ -18,7 +18,7 @@
     "postinstall": "node ./dist/postinstall || exit 0"
   },
   "peerDependencies": {
-    "@types/graphql": "^14.0.7",
+    "@types/graphql": "^14.1.1",
     "graphql": "^14.1.1"
   },
   "dependencies": {
@@ -33,9 +33,10 @@
     "tslib": "^1.9.3"
   },
   "devDependencies": {
+    "@apollo/federation": "^0.6.8",
     "@types/express": "^4.16.1",
     "@types/express-graphql": "^0.6.2",
-    "@types/graphql": "^14.0.7",
+    "@types/graphql": "^14.1.1",
     "@types/gulp": "^4.0.6",
     "@types/gulp-replace": "0.0.31",
     "@types/gulp-shell": "0.0.31",
